@@ -1,5 +1,5 @@
 from app.map_generator import generate_map
-from app.models import GameState, StartSessionRequest, StartSessionResponse
+from app.models import GameState, InitialRenderPackage, StartSessionRequest, StartSessionResponse
 from app.profile_generator import generate_profiles
 
 
@@ -20,11 +20,28 @@ def start_session(request: StartSessionRequest) -> StartSessionResponse:
         tribute_locations=tribute_locations,
         inventory={profile.id: [] for profile in profiles},
     )
+    initial_render_package = InitialRenderPackage(
+        scene_id=f"{state.session_id}:round-0",
+        arena=arena_map,
+        tribute_locations=tribute_locations,
+        tribute_status={profile.id: profile.status for profile in profiles},
+        animation_timeline=[],
+        camera={"focus_zone_id": "cornucopia", "mode": "arena-overview"},
+        overlays={
+            "title": "The arena opens",
+            "round_number": 0,
+            "visible_zone_ids": zone_ids,
+        },
+    )
 
     return StartSessionResponse(
         session_id=state.session_id,
-        state=state,
+        tributes=profiles,
+        arena=arena_map,
+        initial_state=state,
+        initial_render_package=initial_render_package,
         story_memory=[],
+        state=state,
         profiles=profiles,
         map=arena_map,
     )

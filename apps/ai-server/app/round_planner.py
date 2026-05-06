@@ -1,7 +1,16 @@
 from copy import deepcopy
 
-from app.models import GameEvent, GameState, NextRoundRequest, NextRoundResponse, StoryMemoryEntry
+from app.models import (
+    GameEvent,
+    GameState,
+    NextRoundRequest,
+    NextRoundResponse,
+    StartSessionRequest,
+    StartSessionResponse,
+    StoryMemoryEntry,
+)
 from app.pathfinding import build_event_paths
+from app.session_service import start_session
 from app.timeline import build_timeline
 from app.validator import validate_events
 
@@ -15,7 +24,7 @@ ROUND_TITLES = [
 
 
 def plan_round(request: NextRoundRequest) -> NextRoundResponse:
-    state_before = request.state
+    state_before = request.state or _placeholder_session(request).initial_state
     round_number = state_before.round_number + 1
     round_title = ROUND_TITLES[(round_number - 1) % len(ROUND_TITLES)]
 
@@ -43,6 +52,10 @@ def plan_round(request: NextRoundRequest) -> NextRoundResponse:
         state_after=state_after,
         story_memory_after=story_memory_after,
     )
+
+
+def _placeholder_session(request: NextRoundRequest) -> StartSessionResponse:
+    return start_session(StartSessionRequest(session_id=request.session_id))
 
 
 def _draft_events(state: GameState, round_number: int) -> list[GameEvent]:

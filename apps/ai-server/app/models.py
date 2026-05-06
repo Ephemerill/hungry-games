@@ -1,7 +1,7 @@
 from typing import Any, Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class TributeInput(BaseModel):
@@ -53,6 +53,16 @@ class TimelineStep(BaseModel):
     payload: dict[str, Any] = Field(default_factory=dict)
 
 
+class InitialRenderPackage(BaseModel):
+    scene_id: str
+    arena: ArenaMap
+    tribute_locations: dict[str, str]
+    tribute_status: dict[str, Literal["alive", "injured", "eliminated"]]
+    animation_timeline: list[TimelineStep]
+    camera: dict[str, Any] = Field(default_factory=dict)
+    overlays: dict[str, Any] = Field(default_factory=dict)
+
+
 class GameState(BaseModel):
     session_id: str = Field(default_factory=lambda: str(uuid4()))
     round_number: int = Field(default=0, ge=0)
@@ -77,16 +87,28 @@ class StartSessionRequest(BaseModel):
 
 class StartSessionResponse(BaseModel):
     session_id: str
-    state: GameState
+    tributes: list[TributeProfile]
+    arena: ArenaMap
+    initial_state: GameState
+    initial_render_package: InitialRenderPackage
     story_memory: list[StoryMemoryEntry]
+    state: GameState
     profiles: list[TributeProfile]
     map: ArenaMap
 
 
 class NextRoundRequest(BaseModel):
     session_id: str | None = None
-    state: GameState
+    state: GameState | None = None
+    current_state: GameState | dict[str, Any] | None = None
     story_memory: list[StoryMemoryEntry] = Field(default_factory=list)
+    recent_rounds: list[dict[str, Any]] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def use_current_state_alias(self) -> "NextRoundRequest":
+        if self.state is None and isinstance(self.current_state, GameState):
+            self.state = self.current_state
+        return self
 
 
 class NextRoundResponse(BaseModel):
