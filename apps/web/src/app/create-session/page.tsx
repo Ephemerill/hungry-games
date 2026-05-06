@@ -1,3 +1,4 @@
+import { AiHealthNotice } from "@/components/AiHealthNotice";
 import { TributeUploadForm } from "@/components/TributeUploadForm";
 
 export default function CreateSessionPage() {
@@ -7,6 +8,7 @@ export default function CreateSessionPage() {
         <p className="eyebrow">Session setup</p>
         <h1>Create Session</h1>
       </section>
+      <AiHealthNotice />
       <TributeUploadForm />
     </main>
   );

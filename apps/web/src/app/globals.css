@@ -343,6 +343,78 @@ dd {
   white-space: nowrap;
 }
 
+.ai-health {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px 16px;
+  border: 1px solid rgba(166, 66, 58, 0.28);
+  border-radius: 8px;
+  color: var(--danger);
+  background: rgba(166, 66, 58, 0.1);
+}
+
+.ai-health-compact {
+  margin-bottom: 14px;
+}
+
+.ai-health-online {
+  color: var(--moss-dark);
+  border-color: rgba(79, 111, 82, 0.28);
+  background: rgba(79, 111, 82, 0.12);
+}
+
+.ai-health-checking {
+  color: var(--muted);
+  border-color: var(--line);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.ai-health-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.ai-health h2,
+.ai-health p {
+  margin: 0;
+}
+
+.ai-health h2 {
+  font-size: 0.96rem;
+}
+
+.ai-health p {
+  margin-top: 2px;
+  color: currentColor;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid rgba(32, 36, 31, 0.12);
+  border-radius: 8px;
+  color: currentColor;
+  background: rgba(255, 255, 255, 0.72);
+  cursor: pointer;
+}
+
+.icon-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
 .upload-dropzone {
   display: grid;
   place-items: center;
@@ -677,6 +749,10 @@ dd {
   font-size: 0.9rem;
   font-weight: 800;
   line-height: 1.45;
+}
+
+.bridge-error {
+  color: var(--danger);
 }
 
 .round-kicker {

@@ -1,9 +1,10 @@
 import { mockArena, mockRounds, mockTributes } from "@/lib/mock-data";
-import type { NextRoundResponse, StartSessionResponse } from "@/types/api";
+import type { AiHealthResponse, NextRoundResponse, StartSessionResponse } from "@/types/api";
 import type { Arena, Round, Tribute } from "@/types/game";
 
 const DEFAULT_SESSION_ID = "mock-session-hydro-basin";
 const REMOTE_TIMEOUT_MS = 4000;
+const AI_HEALTH_PATH = "/health";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -17,6 +18,25 @@ export async function readJsonRequest(request: Request): Promise<JsonRecord> {
 }
 
 export async function postToAiServer(path: string, payload: unknown): Promise<JsonRecord> {
+  return requestAiServer(path, {
+    method: "POST",
+    payload
+  });
+}
+
+export async function getAiServerHealth(): Promise<JsonRecord> {
+  return requestAiServer(AI_HEALTH_PATH, {
+    method: "GET"
+  });
+}
+
+export async function requestAiServer(
+  path: string,
+  options: {
+    method: "GET" | "POST";
+    payload?: unknown;
+  }
+): Promise<JsonRecord> {
   const baseUrl = getAiServerBaseUrl();
 
   if (!baseUrl) {
@@ -28,11 +48,11 @@ export async function postToAiServer(path: string, payload: unknown): Promise<Js
 
   try {
     const response = await fetch(`${baseUrl}${path}`, {
-      method: "POST",
+      method: options.method,
       headers: {
         "content-type": "application/json"
       },
-      body: JSON.stringify(payload ?? {}),
+      body: options.method === "POST" ? JSON.stringify(options.payload ?? {}) : undefined,
       cache: "no-store",
       signal: controller.signal
     });
@@ -40,7 +60,7 @@ export async function postToAiServer(path: string, payload: unknown): Promise<Js
     const data = await parseJsonResponse(response);
 
     if (!response.ok) {
-      throw new Error(`AI server returned ${response.status}`);
+      throw new Error(readString(data, "message", "detail", "error") ?? `AI server returned ${response.status}`);
     }
 
     return data;
@@ -80,26 +100,54 @@ export function normalizeNextRoundResponse(
   };
 }
 
-export function createMockStartSessionResponse(): StartSessionResponse {
+export function createRemoteHealthResponse(remote: JsonRecord): AiHealthResponse {
+  return {
+    source: "remote",
+    online: true,
+    message: readString(remote, "message", "status") ?? "AI server is online.",
+    checkedAt: new Date().toISOString(),
+    remote
+  };
+}
+
+export function createOfflineHealthResponse(error: unknown): AiHealthResponse {
+  return {
+    source: "mock",
+    online: false,
+    message: getAiServerFallbackMessage(error, "Mock data will be used until the server is reachable."),
+    checkedAt: new Date().toISOString()
+  };
+}
+
+export function createMockStartSessionResponse(error?: unknown): StartSessionResponse {
   return {
     source: "mock",
     sessionId: DEFAULT_SESSION_ID,
     arena: mockArena,
     tributes: mockTributes,
     nextRoundAvailable: true,
-    message: "Remote AI server unavailable; using local mock session data."
+    message: getAiServerFallbackMessage(error, "Using local mock session data.")
   };
 }
 
-export function createMockNextRoundResponse(sessionId = DEFAULT_SESSION_ID): NextRoundResponse {
+export function createMockNextRoundResponse(
+  sessionId = DEFAULT_SESSION_ID,
+  error?: unknown
+): NextRoundResponse {
   return {
     source: "mock",
     sessionId,
     arena: mockArena,
     tributes: mockTributes,
     round: mockRounds[0],
-    message: "Remote AI server unavailable; loaded the local mock round."
+    message: getAiServerFallbackMessage(error, "Loaded the local mock round.")
   };
+}
+
+export function getAiServerFallbackMessage(error: unknown, fallbackAction: string): string {
+  const prefix = isOfflineError(error) ? "AI server is offline" : "AI server request failed";
+
+  return `${prefix}: ${describeAiServerError(error)} ${fallbackAction}`;
 }
 
 function getAiServerBaseUrl(): string | null {
@@ -109,7 +157,13 @@ function getAiServerBaseUrl(): string | null {
     return null;
   }
 
-  return rawBaseUrl.replace(/\/+$/, "");
+  const normalizedBaseUrl = rawBaseUrl.replace(/\/+$/, "");
+
+  if (/^https?:\/\//i.test(normalizedBaseUrl)) {
+    return normalizedBaseUrl;
+  }
+
+  return `http://${normalizedBaseUrl}`;
 }
 
 async function parseJsonResponse(response: Response): Promise<JsonRecord> {
@@ -137,6 +191,34 @@ function readString(record: JsonRecord, ...keys: string[]): string | undefined {
   }
 
   return undefined;
+}
+
+function describeAiServerError(error: unknown): string {
+  if (error instanceof Error) {
+    if (error.name === "AbortError") {
+      return "the request timed out.";
+    }
+
+    if (error instanceof TypeError) {
+      return "the remote server could not be reached.";
+    }
+
+    return `${error.message}.`;
+  }
+
+  return "the remote server could not be reached.";
+}
+
+function isOfflineError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return true;
+  }
+
+  return (
+    error.name === "AbortError" ||
+    error instanceof TypeError ||
+    error.message === "AI_SERVER_BASE_URL is not configured"
+  );
 }
 
 function readBoolean(record: JsonRecord, ...keys: string[]): boolean | undefined {

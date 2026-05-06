@@ -19,8 +19,8 @@ export async function POST(request: Request) {
         "x-hungry-games-source": "remote"
       }
     });
-  } catch {
-    return NextResponse.json(createMockStartSessionResponse(), {
+  } catch (error) {
+    return NextResponse.json(createMockStartSessionResponse(error), {
       headers: {
         "x-hungry-games-source": "mock"
       }

@@ -161,6 +161,9 @@ export function GameShell() {
             <Radio size={18} aria-hidden="true" />
             <span>{round ? `${round.events.length} events loaded` : bridgeMessage}</span>
           </div>
+          {source === "mock" && bridgeMessage.startsWith("AI server") ? (
+            <p className="bridge-message bridge-error">{bridgeMessage}</p>
+          ) : null}
         </section>
 
         <NarrationPanel round={round} />

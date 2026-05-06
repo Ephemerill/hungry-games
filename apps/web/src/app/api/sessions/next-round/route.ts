@@ -20,8 +20,8 @@ export async function POST(request: Request) {
         "x-hungry-games-source": "remote"
       }
     });
-  } catch {
-    return NextResponse.json(createMockNextRoundResponse(sessionId), {
+  } catch (error) {
+    return NextResponse.json(createMockNextRoundResponse(sessionId, error), {
       headers: {
         "x-hungry-games-source": "mock"
       }
